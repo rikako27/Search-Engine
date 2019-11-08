@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import word_tokenize, RegexpTokenizer
 import re
+import gc
 
 class Indexer:
     def __init__(self, path):
@@ -17,6 +18,7 @@ class Indexer:
         self.count_files = 0
         self.importance = {'title': 6.0, 'h1': 5.0, 'h2': 4.0, 'h3': 3.0, 'b': 2.0}
         self.data = {}
+        self.visited_url = set()
         for alpha in string.ascii_lowercase:
             self.data[alpha] = defaultdict(list)
         for num in range(0, 10):
@@ -54,7 +56,7 @@ class Indexer:
                 word_freq[token] += self.importance[tag_name]
 
         all_texts = self.tokens(bs.get_text().lower())
-        for index, text in enumerate(all_texts, 1):
+        for text in all_texts:
             word_freq[text] += 1.0
 
         return self.calculate_tf(word_freq)
@@ -72,7 +74,11 @@ class Indexer:
                     tf_idf = idf * elem[1]
                     self.data[index][token][i][1] = tf_idf
 
+    def removeFragment(self, url:str):
+        return url.split("#")[0]
+
     def create_indexer(self):
+        hash_doc = open("doc_id.txt", "w+")
         for dir in self.path_to_db.iterdir():
             if dir.is_dir():
                 str_dir = str(dir)
@@ -80,16 +86,22 @@ class Indexer:
                     if not file.is_file():
                         continue
                     str_file = str(file)
+           
                     with open(file, 'r', encoding="utf8", errors="ignore") as file:
                         parsed_json = json.load(file)
-                        url = parsed_json['url']
+                        url = self.removeFragment(parsed_json['url'])
+                        if url in self.visited_url:
+                            continue
+                        self.visited_url.add(url)
                         content = parsed_json['content']
-                    print("parsiing %s\n" % url)
-                    self.hash_doc[self.count_files] = url
+
+                    #self.hash_doc[self.count_files] = url
+                    hash_doc.write("%d, %s\n" % (self.count_files, url))
                     token_tf = self.extract_texts(content)
                     self.add_tokens_to_dictionary(token_tf, self.count_files)
                     self.count_files += 1
         self.recalculate_tf_idf()
+        hash_doc.close()
 
     def save_to_file(self):
         if not os.path.exists(self.data_store):
