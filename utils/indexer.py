@@ -8,7 +8,6 @@ import string
 from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import word_tokenize, RegexpTokenizer
-import gc
 import re
 
 class Indexer:
@@ -23,7 +22,7 @@ class Indexer:
         for num in range(0, 10):
             self.data[str(num)] = defaultdict(list)
 
-        self.data_store = "/DATA"
+        self.data_store = "DATA"
         self.save_docID = "doc_id.json"
 
     def tokens(self, text: str) -> list:
@@ -67,26 +66,26 @@ class Indexer:
     def recalculate_tf_idf(self):
         for index, file_score in self.data.items():
             for token, l in file_score.items():
-                num_doc = len(self.data[index][token])
-                idf = log(1.0 * self.count_files / num_doc)
-                tf_idf = idf * l[1]
-                self.data[index][token][1] = tf_idf
+                for i, elem in enumerate(l):
+                    num_doc = len(self.data[index][token])
+                    idf = log(1.0 * self.count_files / num_doc)
+                    tf_idf = idf * elem[1]
+                    self.data[index][token][i][1] = tf_idf
 
     def create_indexer(self):
-        for dir in self.path_to_db.iterdir():
-            if dir.is_dir():
-                str_dir = str(dir)
-                for file in dir.iterdir():
-                    gc.collect()
-                    if not file.is_file():
-                        continue
+        for file in self.path_to_db.iterdir():
+            # if dir.is_dir():
+            #     str_dir = str(dir)
+            #     for file in dir.iterdir():
+            #         if not file.is_file():
+            #             continue
                     str_file = str(file)
-                    with open(file, 'r') as file:
+                    with open(file, 'r', encoding="utf8", errors="ignore") as file:
                         parsed_json = json.load(file)
                         url = parsed_json['url']
                         content = parsed_json['content']
-
-                    self.hash_doc[self.count_files] = str_file
+                    print("parsiing %s\n" % url)
+                    self.hash_doc[self.count_files] = url
                     token_tf = self.extract_texts(content)
                     self.add_tokens_to_dictionary(token_tf, self.count_files)
                     self.count_files += 1
@@ -101,8 +100,8 @@ class Indexer:
 
         for key, tf_idf in self.data.items():
             if os.path.exists(self.data_store + "/" + str(key)):
-                os.remove(self.data_store + "/" + str(k))
-            with open(self.data_store + "/" + str(k), "w") as write_file:
+                os.remove(self.data_store + "/" + str(key))
+            with open(self.data_store + "/" + str(key), "w") as write_file:
                 write_file.write(str(tf_idf))
 
         print("the number of documents %d\n" % self.count_files)
