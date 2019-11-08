@@ -1,0 +1,34 @@
+Indexer:
+Create an inverted index for the given corpus with data structures designed by you.
+Tokens: all alphanumeric sequences in the dataset.
+Stop words: do not use stopping, i.e. use all words, even the frequently occurring
+ones.
+Stemming: use stemming for better textual matches. Suggestion: Porter stemming.
+Important words: Words in bold, in headings (h1, h2, h3), and in titles should be
+treated as more important than the other words.
+
+Index: Your index should be stored in one or more files in the file system (no
+databases).
+
+Search:
+Your program should prompt the user for a query. This doesn’t need to be a Web
+interface, it can be a console prompt. At the time of the query, your program will
+stem the query terms, look up your index, perform some calculations (see ranking
+below) and give out the ranked list of pages that are relevant for the query, with the
+most relevant on top. Pages should be identified by their URLs.
+
+Ranking: at the very least, your ranking formula should include tf-idf scoring, and
+take the important words into consideration, but you should feel free to add
+additional components to this formula if you think they improve the retrieval.
+
+Extra Credit:
+Extra credit will be given for tasks that improve the quality of the retrieval and the
+of the search experience. For example:
+• Detect and eliminate duplicate pages. (2 points)
+• Implement Page Rank, and use it in your ranking formula. (3 points)
+• Implement an additional 2-gram and/or 3-gram indexing and use it during
+retrieval. (2 points)
+• Enhance the index with word positions and use that information for retrieval.
+(2 points)
+• Index anchor words for the target pages (1 point).
+• Implement a Web or GUI interface instead of a console one. (2 points)
