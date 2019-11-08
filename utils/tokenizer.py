@@ -3,6 +3,7 @@ from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import word_tokenize, RegexpTokenizer
 from collections import defaultdict
 
+
 class Tokenizer:
     def __init__(self, content: str):
         self.content = content
