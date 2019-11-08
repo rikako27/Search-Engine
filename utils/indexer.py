@@ -73,12 +73,12 @@ class Indexer:
                     self.data[index][token][i][1] = tf_idf
 
     def create_indexer(self):
-        for file in self.path_to_db.iterdir():
-            # if dir.is_dir():
-            #     str_dir = str(dir)
-            #     for file in dir.iterdir():
-            #         if not file.is_file():
-            #             continue
+        for dir in self.path_to_db.iterdir():
+            if dir.is_dir():
+                str_dir = str(dir)
+                for file in dir.iterdir():
+                    if not file.is_file():
+                        continue
                     str_file = str(file)
                     with open(file, 'r', encoding="utf8", errors="ignore") as file:
                         parsed_json = json.load(file)
