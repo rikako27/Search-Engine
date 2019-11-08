@@ -1,37 +1,83 @@
 from pathlib import Path
-from utils.tokenizer import Tokenizer
 import os
 import sys
 import json
 from collections import defaultdict
 from math import log
-import pickle
+import string
+from bs4 import BeautifulSoup
+from nltk.stem.porter import PorterStemmer
+from nltk.tokenize import word_tokenize, RegexpTokenizer
+import gc
+import re
 
 class Indexer:
-    def __init__(self, config, restart, path):
-        self.config = config
+    def __init__(self, path):
         self.path_to_db = Path(path)
-
-        if restart:
-            if os.path.exists(self.config.save_hash_doc):
-                os.remove(self.config.save_path)
-
-            if os.path.exists(self.config.save_index_table):
-                os.remove(self.config.save_index_table)
-
-            if os.path.exists(self.config.save_result):
-                os.remove(self.config.save_result)
-
-        self.save_tf = defaultdict(lambda: defaultdict(float))
-        self.save_pos = defaultdict(lambda: defaultdict(list))
         self.hash_doc = defaultdict(str)
         self.count_files = 0
+        self.importance = {'title': 6.0, 'h1': 5.0, 'h2': 4.0, 'h3': 3.0, 'b': 2.0}
+        self.data = {}
+        for alpha in string.ascii_lowercase:
+            self.data[alpha] = defaultdict(list)
+        for num in range(0, 10):
+            self.data[str(num)] = defaultdict(list)
+
+        self.data_store = "/DATA"
+        self.save_docID = "doc_id.json"
+
+    def tokens(self, text: str) -> list:
+        #split text into all alphanumeric tokens and perform porter stemming
+        tokenizer = RegexpTokenizer('[0-9A-Za-z]+', flags=re.UNICODE)
+        stemmer = PorterStemmer()
+        return [stemmer.stem(t).lower() for t in tokenizer.tokenize(text)]
+
+    def calculate_tf(self, word_freq: dict):
+        tf = defaultdict(float)
+        total_words = sum(word_freq.values())
+        for word, freq in word_freq.items():
+            tf[word] = freq / total_words
+        return tf
+
+    def extract_texts(self, html_text: str):
+        word_freq = defaultdict(float)
+        bs = BeautifulSoup(html_text, 'lxml')
+
+        #delete <script> and <style> elements
+        for script in bs(["script", "style"]):
+            script.extract()
+
+        #find header, bold, and title, and add weights
+        for text in bs.find_all(['title', 'h1', 'h2', 'h3', 'b']):
+            tag_name = text.name
+            list_tokens = self.tokens(text.get_text().lower())
+            for token in list_tokens:
+                word_freq[token] += self.importance[tag_name]
+
+        all_texts = self.tokens(bs.get_text().lower())
+        for index, text in enumerate(all_texts, 1):
+            word_freq[text] += 1.0
+
+        return self.calculate_tf(word_freq)
+
+    def add_tokens_to_dictionary(self, tokens_tf: dict, doc_id: int):
+        for token, tf in tokens_tf.items():
+            self.data[token[0]][token].append([doc_id, tf])
+
+    def recalculate_tf_idf(self):
+        for index, file_score in self.data.items():
+            for token, l in file_score.items():
+                num_doc = len(self.data[index][token])
+                idf = log(1.0 * self.count_files / num_doc)
+                tf_idf = idf * l[1]
+                self.data[index][token][1] = tf_idf
 
     def create_indexer(self):
         for dir in self.path_to_db.iterdir():
             if dir.is_dir():
                 str_dir = str(dir)
                 for file in dir.iterdir():
+                    gc.collect()
                     if not file.is_file():
                         continue
                     str_file = str(file)
@@ -41,32 +87,24 @@ class Indexer:
                         content = parsed_json['content']
 
                     self.hash_doc[self.count_files] = str_file
-                    tokenize = Tokenizer(content)
-                    tokenize.extract_texts()
-                    tf = tokenize.calculate_tf()
-                    position_index = tokenize.get_positional_index()
-                    for word, score in tf.items():
-                        self.save_tf[word][self.count_files] = score
-                    for word, index in position_index.items():
-                        self.save_pos[word][self.count_files].extend(index)
+                    token_tf = self.extract_texts(content)
+                    self.add_tokens_to_dictionary(token_tf, self.count_files)
                     self.count_files += 1
+        self.recalculate_tf_idf()
 
-        with open(self.config.save_hash_doc, "w+") as f:
+    def save_to_file(self):
+        if not os.path.exists(self.data_store):
+            os.makedirs(self.data_store)
+
+        with open(self.save_docID, "w+") as f:
             json.dump(self.hash_doc, f)
 
+        for key, tf_idf in self.data.items():
+            if os.path.exists(self.data_store + "/" + str(key)):
+                os.remove(self.data_store + "/" + str(k))
+            with open(self.data_store + "/" + str(k), "w") as write_file:
+                write_file.write(str(tf_idf))
 
-    def create_index_table(self):
-        for word, file_score in self.save_tf.items():
-            idf = log(1.0 * self.count_files / len(self.save_tf[word]))
-            for file, score in file_score.items():
-                tf_idf = idf * score
-                self.save_tf[word][file] = tf_idf
-
-        with open(self.config.save_result, "w+") as result:
-            # the number of documents
-            result.write("the number of documents %d\n" % self.count_files)
-            # the number of [unique] tokens
-            result.write("the number of unique tokens %d\n" % len(self.save_tf))
-
-        with open(self.config.save_index_table, "w+") as sace_tf_idf:
-            json.dump(self.save_tf, save_tf_idf)
+        print("the number of documents %d\n" % self.count_files)
+        num_unique_tokens = sum(len(i.values()) for i in self.data.values())
+        print("the number of unique tokens %d\n" % num_unique_tokens)
