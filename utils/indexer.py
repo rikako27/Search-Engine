@@ -33,7 +33,7 @@ class Indexer:
         for token, tf in tokens_tf.items():
             self.data[token[0]][token].append([doc_id, tf])
 
-        if sys.getsizeof(self.data) >= 100000: #greater than 100KB
+        if self.count_files != 0 and self.count_files % 200 == 0:
             print("Now appending")
             self.save_to_file()
 
@@ -66,7 +66,7 @@ class Indexer:
     def save_to_file(self):
         for key, tf_idf in self.data.items():
             file = self.data_store + "/" + str(key)
-            if os.path.exists(file):
+            if not os.path.exists(file):
                 with open(file, "w") as write_file:
                     json.dump(tf_idf, write_file)
             else: #need merging
@@ -80,7 +80,7 @@ class Indexer:
 
         #make dictionary empty
         for key in self.data.keys():
-            self.data[key] = default(list)
+            self.data[key] = defaultdict(list)
 
         print("the number of documents %d\n" % self.count_files)
 
