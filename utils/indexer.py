@@ -1,13 +1,12 @@
 from pathlib import Path
 import os
-import sys
 import json
 from collections import defaultdict
 from math import log
 import string
 from bs4 import BeautifulSoup
 from nltk.stem.porter import PorterStemmer
-from nltk.tokenize import word_tokenize, RegexpTokenizer
+from nltk.tokenize import RegexpTokenizer
 import re
 import gc
 
@@ -18,20 +17,21 @@ class Indexer:
         self.count_files = 0
         self.importance = {'title': 6.0, 'h1': 5.0, 'h2': 4.0, 'h3': 3.0, 'b': 2.0}
         self.data = {}
-        self.visited_url = set()
         for alpha in string.ascii_lowercase:
             self.data[alpha] = defaultdict(list)
         for num in range(0, 10):
             self.data[str(num)] = defaultdict(list)
 
         self.data_store = "DATA"
-        self.save_docID = "doc_id.json"
 
     def tokens(self, text: str) -> list:
         #split text into all alphanumeric tokens and perform porter stemming
         tokenizer = RegexpTokenizer('[0-9A-Za-z]+', flags=re.UNICODE)
+
+        # not allow digits that has length > 4
+        token = [t for t in tokenizer.tokenize(text) if not (t.isdigit() and len(t) >= 5)]
         stemmer = PorterStemmer()
-        return [stemmer.stem(t).lower() for t in tokenizer.tokenize(text)]
+        return [stemmer.stem(t).lower() for t in token]
 
     def calculate_tf(self, word_freq: dict):
         tf = defaultdict(float)
@@ -72,30 +72,26 @@ class Indexer:
                     num_doc = len(self.data[index][token])
                     idf = log(1.0 * self.count_files / num_doc)
                     tf_idf = idf * elem[1]
-                    self.data[index][token][i][1] = tf_idf
+                    self.data[index][token][i][1] = round(tf_idf + 0.005, 2)
 
     def removeFragment(self, url:str):
         return url.split("#")[0]
 
     def create_indexer(self):
+        #hash_doc file stores doc_id, url
         hash_doc = open("doc_id.txt", "w+")
         for dir in self.path_to_db.iterdir():
             if dir.is_dir():
-                str_dir = str(dir)
                 for file in dir.iterdir():
                     if not file.is_file():
                         continue
                     str_file = str(file)
-           
-                    with open(file, 'r', encoding="utf8", errors="ignore") as file:
+
+                    with open(file, 'r', encoding="ascii", errors="ignore") as file:
                         parsed_json = json.load(file)
                         url = self.removeFragment(parsed_json['url'])
-                        if url in self.visited_url:
-                            continue
-                        self.visited_url.add(url)
                         content = parsed_json['content']
 
-                    #self.hash_doc[self.count_files] = url
                     hash_doc.write("%d, %s\n" % (self.count_files, url))
                     token_tf = self.extract_texts(content)
                     self.add_tokens_to_dictionary(token_tf, self.count_files)
@@ -107,14 +103,12 @@ class Indexer:
         if not os.path.exists(self.data_store):
             os.makedirs(self.data_store)
 
-        with open(self.save_docID, "w+") as f:
-            json.dump(self.hash_doc, f)
-
         for key, tf_idf in self.data.items():
-            if os.path.exists(self.data_store + "/" + str(key)):
-                os.remove(self.data_store + "/" + str(key))
-            with open(self.data_store + "/" + str(key), "w") as write_file:
-                write_file.write(str(tf_idf))
+            file = self.data_store + "/" + str(key) + ".json"
+            if os.path.exists(file):
+                os.remove(file)
+            with open(file, "w") as write_file:
+                json.dump(tf_idf, write_file)
 
         print("the number of documents %d\n" % self.count_files)
         num_unique_tokens = sum(len(i.values()) for i in self.data.values())
