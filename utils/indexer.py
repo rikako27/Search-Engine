@@ -7,6 +7,7 @@ import json
 from math import log
 import string
 import gc
+import pickle
 
 class Indexer:
     def __init__(self, path):
@@ -67,16 +68,16 @@ class Indexer:
         for key, tf_idf in self.data.items():
             file = self.data_store + "/" + str(key)
             if not os.path.exists(file):
-                with open(file, "w") as write_file:
-                    json.dump(tf_idf, write_file)
+                with open(file, "wb") as write_file:
+                    pickle.dump(tf_idf, write_file)
             else: #need merging
-                with open(file, "r") as original: #grap the saved dictionary
-                    first_dict = json.load(original)
+                with open(file, "rb") as original: #grap the saved dictionary
+                    first_dict = pickle.load(original)
                 #Now appending
                 for k, v in first_dict.items():
                     v.extend(tf_idf[k])
-                with open(file, "a") as write_file:
-                    json.dump(first_dict, write_file)
+                with open(file, "ab") as write_file:
+                    pickle.dump(first_dict, write_file)
 
         #make dictionary empty
         for key in self.data.keys():
@@ -88,8 +89,8 @@ class Indexer:
         for key in self.data.keys():
             file = self.data_store + "/" + str(key)
 
-            with open(file, "r") as read_index:
-                dict = json.load(read_index)
+            with open(file, "rb") as read_index:
+                dict = pickle.load(read_index)
                 for token, list_doc_tf in dict.items():
                     num_doc = len(list_doc_tf)
                     for index, id_tf in enumerate(list_doc_tf):
@@ -99,5 +100,5 @@ class Indexer:
 
             print("Number of unique tokens in folder %s: %d\n" % (key, len(dict)))
             #update dict
-            with open(file, "w") as write_file:
-                json.dump(dict, write_file)
+            with open(file, "wb") as write_file:
+                pickle.dump(dict, write_file)
