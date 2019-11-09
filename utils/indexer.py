@@ -32,9 +32,10 @@ class Indexer:
 
     def add_tokens_to_dictionary(self, tokens_tf: dict, doc_id: int):
         for token, tf in tokens_tf.items():
-            self.data[token[0]][token].append([doc_id, tf])
+            self.data[token[0]][token].append((doc_id, tf))
 
-        if self.count_files != 0 and self.count_files % 200 == 0:
+        if sys.getsizeof(self.data) >= 100000:
+        #if self.count_files != 0 and self.count_files % 200 == 0:
             print("Now appending")
             self.save_to_file()
 
