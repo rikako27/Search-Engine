@@ -23,7 +23,7 @@ class Tokenizer:
         tf = defaultdict(float)
         total_words = sum(word_freq.values())
         for word, freq in word_freq.items():
-            tf[word] = freq / total_words
+            tf[word] = round(freq / total_words + 0.005, 2)
         return tf
 
     def extract_texts(self):
