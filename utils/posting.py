@@ -1,11 +1,17 @@
 class Posting:
-    def __init__(self, doc_id: int, token: str, tf: float):
+    def __init__(self, doc_id: int, tf_idf: float, next_node=None):
         self.doc_id = doc_id
-        self.token = token
-        self.tf = tf
-        self.tf_idf = 0.0
+        self.tf_idf = tf_idf
+        self.next_node = next_node
 
-    def calculate_tfidf(self, num_files, num_files_with_token):
-        idf = log(1.0 * num_files / num_files_with_token)
-        tf_idf = idf * self.tf
-        self.tf_idf = round(tf_idf + 0.005, 2)
+    def get_docid(self):
+        return self.doc_id
+        
+    def get_tf_idf(self):
+        return self.get_tf_idf
+
+    def get_next(self):
+        return self.next_node
+
+    def set_next(self, new_next):
+        self.next_node = new_next

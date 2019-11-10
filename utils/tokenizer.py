@@ -2,7 +2,6 @@ from nltk.stem.porter import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
 from bs4 import BeautifulSoup
 from collections import defaultdict
-import re
 
 class Tokenizer:
     def __init__(self, content: str):
@@ -12,7 +11,7 @@ class Tokenizer:
 
     def tokens(self, text: str) -> list:
         #split text into all alphanumeric tokens and perform porter stemming
-        tokenizer = RegexpTokenizer('[0-9A-Za-z]+', flags=re.UNICODE)
+        tokenizer = RegexpTokenizer('[0-9A-Za-z]+')
 
         # not allow digits that has length > 4
         token = [t for t in tokenizer.tokenize(text) if not (t.isdigit() and len(t) >= 5)]

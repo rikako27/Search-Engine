@@ -2,18 +2,17 @@ from pathlib import Path
 from utils.tokenizer import Tokenizer
 from collections import defaultdict
 import os
-import sys
-import json
+import json.load
 from math import log
-import string
-import gc
+import string.ascii
+import gc.collect
 import pickle
 
 class Indexer:
     def __init__(self, path):
         self.path_to_db = Path(path)
         self.count_files = 0
-        
+
         self.data = {} #This stores token-id and tf-idf
         for alpha in string.ascii_lowercase:
             self.data[alpha] = defaultdict(list)
@@ -25,7 +24,7 @@ class Indexer:
             os.makedirs(self.data_store)
 
         for key in self.data.keys():
-            file = self.data_store + "/" + str(key)  
+            file = self.data_store + "/" + str(key)
             if os.path.exists(file):
                 os.remove(file)
 
@@ -36,8 +35,8 @@ class Indexer:
         for t, tf in token_tf.items():
             self.data[t[0]][t].append((doc_id, tf))
 
-        if self.count_files != 0 and self.count_files % 300 == 0:
-            self.save_to_file()
+        # if self.count_files != 0 and self.count_files % 300 == 0:
+        #     self.save_to_file()
 
     def removeFragment(self, url:str):
         return url.split("#")[0]
@@ -55,17 +54,17 @@ class Indexer:
                         parsed_json = json.load(file)
                         url = self.removeFragment(parsed_json['url'])
                         content = parsed_json['content']
-                    
+
                     hash_doc.write("%d, %s\n" % (self.count_files, url))
                     tokenizer = Tokenizer(content)
                     token_tf = tokenizer.extract_texts()
                     self.add_tokens_to_dictionary(token_tf, self.count_files)
-                    gc.collect() 
+                    gc.collect()
                     self.count_files += 1
         hash_doc.close()
         self.save_to_file()
         self.recalculate_tf_idf()
-       
+
 
     def save_to_file(self):
         for key in self.data.keys():
@@ -91,13 +90,13 @@ class Indexer:
 
                 with open(file, "wb") as write_file:
                     pickle.dump(orig_dict, write_file, protocol=pickle.HIGHEST_PROTOCOL)
-                orig_dict = {} 
+                orig_dict = {}
             gc.collect()
         print("the number of documents %d\n" % self.count_files)
 
     def recalculate_tf_idf(self):
-        for key in self.data.keys():
-            file = self.data_store + "/" + key 
+        for key in self.data:
+            file = self.data_store + "/" + key
             with open(file, "rb") as rf:
                 token_posting = pickle.load(rf)
             os.remove(file)
