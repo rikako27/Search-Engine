@@ -1,7 +1,7 @@
 class Posting:
-    def __init__(self, doc_id: int, token_id: int, tf: float):
+    def __init__(self, doc_id: int, token: str, tf: float):
         self.doc_id = doc_id
-        self.token_id = token_id
+        self.token = token
         self.tf = tf
         self.tf_idf = 0.0
 
