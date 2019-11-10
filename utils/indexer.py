@@ -41,6 +41,9 @@ class Indexer:
             posting = Posting(doc_id, t, tf)
             self.data[t[0]][t].append(posting)
 
+        if self.count_files != 0 and self.count_files % 300 == 0:
+            self.save_to_file()
+
     def removeFragment(self, url:str):
         return url.split("#")[0]
 
@@ -70,26 +73,29 @@ class Indexer:
 
     def save_to_file(self):
         for key in self.data.keys():
-            files = self.data_store + "/" + key
+            file = self.data_store + "/" + key
 
-            with open(file, "wb") as write_file:
-                pickle.dump(self.data[key], write_file)
+            if not os.path.exists(file):
+                with open(file, "wb") as write_file:
+                    pickle.dump(self.data[key], write_file)
+                self.data[key].clear()
+                self.data[key] = defaultdict(list)
 
-        # if not os.path.exists(self.data_file):
-        #     with open(self.data_file, "wb") as write_file:
-        #         pickle.dump(self.data, write_file)
-        # else: #need merging
-        #     with open(self.data_file, "rb") as original: #grap the saved dictionary
-        #         first_dict = pickle.load(original)
-        #     #Now appending
-        #     for k, v in first_dict.items():
-        #         v.extend(self.data[k])
-        #     with open(self.data_file, "ab") as write_file:
-        #         pickle.dump(first_dict, write_file)
+            else: #need merging
+                with open(file, "rb") as f: #grap the saved dictionary
+                    orig_dict = pickle.load(f)
 
-        #make dictionary empty
-        # self.data.clear()
-        # self.data = defaultdict(list)
+                #Now appending
+                for token, posting in self.data[key].items():
+                    if token not in orig_dict.keys():
+                        orig_dict[token] = list()
+                    orig_dict[token].append(posting)
+                self.data[key].clear()
+                self.data[key] = defaultdict(list)
+
+                with open(file, "ab") as write_file:
+                    pickle.dump(orig_dict, write_file)
+                orig_dict = {}
 
         print("the number of documents %d\n" % self.count_files)
 
