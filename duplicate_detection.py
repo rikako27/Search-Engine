@@ -75,6 +75,7 @@ if __name__ == "__main__":
                         len_file2 = len(tokens2)
                         if (len_file1 < len_file2):
                             set_url_removed.add(url1)
+                            break
                         else:
                             set_url_removed.add(url2)
     rf.close()
