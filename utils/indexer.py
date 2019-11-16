@@ -114,7 +114,7 @@ class Indexer:
                 os.rename(new_file, file)
 
     def recalculate_tf_idf(self):
-        print("Number of Documents %d\n" & self.count_files)
+        print("Number of Documents %d\n" % self.count_files)
         for key in self.data:
             file = self.data_store + "/" + key
             token_posting = open(file, writeback=True)
