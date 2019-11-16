@@ -1,18 +1,3 @@
-
-# 2. let V = [0] * 32 # (ie 32 zeros)
-# 3. break the phrase up into features
-# irb(main):003:0> 'the cat sat on the mat'.shingles
-# => #<Set: {"th", "he", "e ", " c", "ca", "at", "t ",
-#     " s", "sa", " o", "on", "n ", " t", " m", "ma"}>
-# 4. hash each feature using a normal 32-bit hash algorithm
-# "th".hash = -502157718
-# "he".hash = -369049682
-# ...
-# 5. for each hash
-# if biti of hash is set then add 1 to V[i]
-# if biti of hash is not set then take 1 from V[i]
-# 6. simhash biti is 1 if V[i] > 0 and 0 otherwise
-
 from pathlib import Path
 import os
 import json
@@ -85,10 +70,10 @@ def similarity(right_hash, left_hash, hashbits=128):
 
 if __name__ == "__main__":
     set_url_removed = set()
-    path_to_db = Path("../DEV")
-    #path_to_db = Path("/home/lopes/Datasets/IR/DEV")
+    #path_to_db = Path("../DEV")
+    path_to_db = Path("/home/lopes/Datasets/IR/DEV")
 
-    rf = open("result.txt", "w+")
+    rf = open("duplicate.txt", "w+")
     for dir in path_to_db.iterdir():
         if not dir.is_dir():
             continue
@@ -106,14 +91,16 @@ if __name__ == "__main__":
 
         for i in range(0, len(file_list) - 1):
             for j in range(i + 1, len(file_list)):
-                dis = calculate_distance(sim_list[i][0], sim_list[j][0])
                 sim = similarity(sim_list[i][0], sim_list[j][0])
-                print("%s and %s\n" % (url_list[i], url_list[j]))
-                print("hash_dis: %d, similarity: %f\n" % (dis, sim))
-                rf.write("%s and %s\n" % (url_list[i], url_list[j]))
-                rf.write("hash_dis: %d, similarity: %f\n" % (dis, sim))
+                if sim >= 0.9:
+                    rf.write("%s : %s\n" %(url_list[i], url_list[j]))
+
+                    if sim_list[i][1] > sim_list[j][1]:
+                        set_url_removed.add(url_list[j])
+                    else:
+                        set_url_removed.add(url_list[i])
+                        break
 
     rf.close()
-
-    # with open("database/removed_urls.txt", "wb") as fp:
-    #     pickle.dump(set_url_removed, fp)
+    with open("database/removed_urls.pkl", "wb") as fp:
+        pickle.dump(set_url_removed, fp)
